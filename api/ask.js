@@ -1,19 +1,35 @@
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Only POST allowed' });
+  }
 
   const { prompt } = req.body;
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
 
-  const modifiedPrompt = `Act like a helpful AI assistant. Answer precisely. User asked: ${prompt}`;
+  const payload = {
+    model: "mistralai/mistral-7b-instruct",
+    messages: [
+      { role: "user", content: prompt }
+    ]
+  };
 
-  const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + apiKey, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: modifiedPrompt }] }]
-    }),
-  });
+  try {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
 
-  const data = await response.json();
-  res.status(200).json({ text: data.candidates?.[0]?.content?.parts?.[0]?.text || "No response" });
+    const data = await response.json();
+    const reply = data.choices?.[0]?.message?.content || "No response from model";
+
+    res.status(200).json({ text: reply });
+
+  } catch (err) {
+    console.error("OpenRouter API error:", err);
+    res.status(500).json({ text: "Failed to contact OpenRouter" });
+  }
 }
