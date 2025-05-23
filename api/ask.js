@@ -12,6 +12,9 @@ export default async function handler(req, res) {
       { role: "user", content: prompt }
     ]
   };
+  if (!apiKey) {
+    console.error("❌ No OPENROUTER_API_KEY set");
+  }
 
   try {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
